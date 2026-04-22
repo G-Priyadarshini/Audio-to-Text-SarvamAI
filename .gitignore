@@ -1,8 +1,4 @@
 # Environment files
-.env
-backend/.env
-*.env
-
 # Python
 __pycache__/
 *.py[cod]
