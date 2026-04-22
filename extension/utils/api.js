@@ -148,6 +148,18 @@ class API {
     URL.revokeObjectURL(url);
   }
 
+  /* ── Settings ── */
+  static updateSettings(data) {
+    return API.request('/settings', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  static getSettings() {
+    return API.request('/settings');
+  }
+
   /* ── Stream (real-time) ── */
   static sendStreamAudio(jobId, audioData) {
     const formData = new FormData();

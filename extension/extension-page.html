@@ -36,8 +36,30 @@
           <span class="status-dot" id="statusDot"></span>
           <span class="status-text" id="statusText">Checking...</span>
         </div>
+        <button class="settings-btn" id="settingsBtn" title="Settings">&#9881;</button>
       </div>
     </header>
+
+    <!-- Settings Modal -->
+    <div class="settings-overlay hidden" id="settingsOverlay">
+      <div class="settings-modal">
+        <div class="settings-header">
+          <h2>Settings</h2>
+          <button class="close-btn" id="closeSettings">&#10005;</button>
+        </div>
+        <div class="settings-body">
+          <div class="settings-group">
+            <label for="sarvamApiKey">Sarvam AI API Key</label>
+            <input type="password" id="sarvamApiKey" placeholder="Enter your Sarvam API key..." autocomplete="off" />
+            <p class="settings-hint">Get your key from <a href="https://dashboard.sarvam.ai" target="_blank">dashboard.sarvam.ai</a></p>
+          </div>
+          <div class="settings-status" id="settingsStatus"></div>
+        </div>
+        <div class="settings-footer">
+          <button class="btn-save-settings" id="saveSettingsBtn">Save &amp; Apply</button>
+        </div>
+      </div>
+    </div>
 
     <!-- Main Content -->
     <div class="main-layout">
@@ -45,7 +67,7 @@
       <div class="left-panel">
         <!-- Source Header -->
         <div class="source-tabs">
-          <button class="tab-btn active" data-source="file">Upload File</button>
+          <button class="tab-btn active" id="uploadFileBtn" data-source="file">Upload File</button>
         </div>
 
         <!-- File Upload Controls -->
@@ -53,9 +75,9 @@
           <div class="upload-zone" id="uploadZone">
             <div class="upload-icon">&#128193;</div>
             <p>Drag &amp; drop audio file or click to browse</p>
-            <p class="upload-limits">Max: 500MB | 2 hours | WAV, MP3, AAC, OGG, FLAC, M4A, WebM</p>
+            <p class="upload-limits">MP3, MP4</p>
             <input type="file" id="fileInput" hidden
-              accept="audio/*,.wav,.mp3,.aac,.ogg,.opus,.flac,.m4a,.webm,.wma,.amr">
+              accept=".mp3,.mp4,audio/mpeg,audio/mp4,video/mp4">
           </div>
           <div class="file-info hidden" id="fileInfo">
             <div class="file-detail">

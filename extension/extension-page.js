@@ -57,6 +57,14 @@ const dom = {
   historySidebar: $('#historySidebar'),
   closeHistory: $('#closeHistory'),
   historyList: $('#historyList'),
+
+  // Settings
+  settingsBtn: $('#settingsBtn'),
+  settingsOverlay: $('#settingsOverlay'),
+  closeSettings: $('#closeSettings'),
+  sarvamApiKeyInput: $('#sarvamApiKey'),
+  settingsStatus: $('#settingsStatus'),
+  saveSettingsBtn: $('#saveSettingsBtn'),
 };
 
 /* ====================================================================
@@ -68,6 +76,8 @@ async function init() {
   checkHealth();
   setInterval(checkHealth, 15000);
   try { bindEvents(); } catch (e) { console.error('bindEvents error:', e); }
+  try { bindSettingsEvents(); } catch (e) { console.error('bindSettingsEvents error:', e); }
+  loadAndApplyStoredSettings();
 }
 
 /* ====================================================================
@@ -101,6 +111,9 @@ function bindEvents() {
   dom.fileInput?.addEventListener('change', (e) => {
     if (e.target.files.length) handleFileSelect(e.target.files[0]);
   });
+
+  // Upload File tab button → open file picker directly
+  document.getElementById('uploadFileBtn')?.addEventListener('click', () => dom.fileInput?.click());
 
   // File upload start button
   dom.uploadStartBtn?.addEventListener('click', async () => {
@@ -141,11 +154,10 @@ function bindEvents() {
    ==================================================================== */
 async function handleFileSelect(file) {
   const maxSize = 500 * 1024 * 1024;
-  const allowed = ['audio/wav', 'audio/x-wav', 'audio/wave', 'audio/mpeg', 'audio/mp3',
-    'audio/ogg', 'audio/flac', 'audio/webm', 'audio/mp4', 'audio/x-m4a'];
+  const allowed = /\.(mp3|mp4)$/i;
 
-  if (!allowed.some(t => file.type.startsWith(t.split('/')[0])) && !file.name.match(/\.(wav|mp3|ogg|flac|webm|m4a)$/i)) {
-    return alert('Unsupported file format. Use WAV, MP3, OGG, FLAC, WebM, or M4A.');
+  if (!allowed.test(file.name)) {
+    return alert('Unsupported file format. Please use MP3 or MP4.');
   }
   if (file.size > maxSize) {
     return alert('File too large. Maximum is 500 MB.');
@@ -297,8 +309,8 @@ async function loadTranscript(jobId) {
         dom.liveTranscript.appendChild(document.createTextNode(seg.text + '\n'));
       });
     } else {
-      dom.liveTranscript.classList.remove('html-content');
-      dom.liveTranscript.textContent = text;
+      dom.liveTranscript.classList.add('html-content');
+      dom.liveTranscript.innerHTML = markdownToHtml(text);
     }
     enableDownloads();
   } catch (err) {
@@ -348,9 +360,7 @@ function finishEdit() {
    Downloads
    ==================================================================== */
 function enableDownloads() {
-  dom.downloadTxt.disabled = false;
-  dom.downloadSrt.disabled = false;
-  dom.downloadVtt.disabled = false;
+  if (dom.downloadTxt) dom.downloadTxt.disabled = false;
   dom.editBtn.disabled = false;
 }
 
@@ -426,6 +436,131 @@ async function loadJobFromHistory(jobId) {
     console.error('Load history job error:', err);
   }
   dom.historySidebar.classList.add('hidden');
+}
+
+/* ====================================================================
+   Markdown → HTML Renderer
+   ==================================================================== */
+function markdownToHtml(md) {
+  if (!md) return '';
+  const lines = md.split('\n');
+  let html = '';
+  let inUl = false, inOl = false, inTable = false, tableIsHeader = true;
+
+  const closeList = () => {
+    if (inUl) { html += '</ul>'; inUl = false; }
+    if (inOl) { html += '</ol>'; inOl = false; }
+  };
+  const closeTable = () => {
+    if (inTable) { html += '</tbody></table>'; inTable = false; tableIsHeader = true; }
+  };
+  const inline = (t) => t
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`(.+?)`/g, '<code>$1</code>');
+
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    const trimmed = line.trim();
+
+    if (/^### /.test(trimmed)) {
+      closeList(); closeTable();
+      html += `<h3>${inline(trimmed.slice(4))}</h3>`; continue;
+    }
+    if (/^## /.test(trimmed)) {
+      closeList(); closeTable();
+      html += `<h2>${inline(trimmed.slice(3))}</h2>`; continue;
+    }
+    if (/^# /.test(trimmed)) {
+      closeList(); closeTable();
+      html += `<h1>${inline(trimmed.slice(2))}</h1>`; continue;
+    }
+
+    // Table rows
+    if (/^\|/.test(trimmed)) {
+      const cells = trimmed.split('|').slice(1, -1).map(c => c.trim());
+      if (cells.every(c => /^[-: ]+$/.test(c))) { tableIsHeader = false; continue; }
+      closeList();
+      if (!inTable) {
+        html += '<table><thead><tr>' + cells.map(c => `<th>${inline(c)}</th>`).join('') + '</tr></thead><tbody>';
+        inTable = true; tableIsHeader = false;
+      } else {
+        html += '<tr>' + cells.map(c => `<td>${inline(c)}</td>`).join('') + '</tr>';
+      }
+      continue;
+    } else { closeTable(); }
+
+    // Unordered list
+    if (/^[-*] /.test(trimmed)) {
+      if (inOl) { html += '</ol>'; inOl = false; }
+      if (!inUl) { html += '<ul>'; inUl = true; }
+      html += `<li>${inline(trimmed.slice(2))}</li>`; continue;
+    }
+
+    // Ordered list
+    if (/^\d+\.\s/.test(trimmed)) {
+      if (inUl) { html += '</ul>'; inUl = false; }
+      if (!inOl) { html += '<ol>'; inOl = true; }
+      html += `<li>${inline(trimmed.replace(/^\d+\.\s+/, ''))}</li>`; continue;
+    }
+
+    // Blank line
+    if (!trimmed) { closeList(); closeTable(); html += '<br>'; continue; }
+
+    // Regular paragraph
+    closeList(); closeTable();
+    html += `<p>${inline(trimmed)}</p>`;
+  }
+  closeList(); closeTable();
+  return html;
+}
+
+/* ====================================================================
+   Settings
+   ==================================================================== */
+async function loadAndApplyStoredSettings() {
+  // Load key from backend (which reads .env at startup)
+  try {
+    const data = await API.getSettings();
+    if (data && data.sarvam_api_key && dom.sarvamApiKeyInput) {
+      dom.sarvamApiKeyInput.value = data.sarvam_api_key;
+    }
+  } catch (e) {
+    console.warn('Could not load settings from backend:', e);
+  }
+}
+
+function bindSettingsEvents() {
+  dom.settingsBtn?.addEventListener('click', () =>
+    dom.settingsOverlay.classList.remove('hidden')
+  );
+  dom.closeSettings?.addEventListener('click', () =>
+    dom.settingsOverlay.classList.add('hidden')
+  );
+  dom.settingsOverlay?.addEventListener('click', (e) => {
+    if (e.target === dom.settingsOverlay) dom.settingsOverlay.classList.add('hidden');
+  });
+  dom.saveSettingsBtn?.addEventListener('click', saveSettings);
+}
+
+async function saveSettings() {
+  const sarvamKey = dom.sarvamApiKeyInput?.value.trim() || '';
+  dom.settingsStatus.textContent = 'Applying...';
+  dom.settingsStatus.className = 'settings-status';
+  try {
+    await API.updateSettings({ sarvam_api_key: sarvamKey });
+    dom.settingsStatus.textContent = '\u2713 API key saved!';
+    dom.settingsStatus.className = 'settings-status success';
+    setTimeout(() => {
+      dom.settingsStatus.textContent = '';
+      dom.settingsStatus.className = 'settings-status';
+      dom.settingsOverlay.classList.add('hidden');
+    }, 2000);
+  } catch (err) {
+    dom.settingsStatus.textContent = 'Failed: ' + (err.message || 'Backend offline');
+    dom.settingsStatus.className = 'settings-status error';
+  }
 }
 
 /* ====================================================================
