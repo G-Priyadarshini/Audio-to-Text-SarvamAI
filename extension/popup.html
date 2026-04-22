@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 300px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      padding: 20px;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .header h1 {
+      font-size: 24px;
+      color: #e94560;
+      letter-spacing: 2px;
+    }
+    .header p {
+      font-size: 12px;
+      color: #888;
+      margin-top: 4px;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 10px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: #e94560;
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #c73652;
+    }
+    .btn-secondary {
+      background: #16213e;
+      color: #e94560;
+      border: 1px solid #e94560;
+    }
+    .btn-secondary:hover {
+      background: #e94560;
+      color: white;
+    }
+    .status {
+      text-align: center;
+      font-size: 11px;
+      color: #666;
+      margin-top: 10px;
+    }
+    .status.connected { color: #4caf50; }
+    .status.disconnected { color: #f44336; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Audio to Text</h1>
+    <p>Audio to Text Transcription</p>
+  </div>
+
+  <button class="btn btn-primary" id="openApp">
+    Open Transcription App
+  </button>
+  <button class="btn btn-secondary" id="openHistory">
+    View History
+  </button>
+
+  <div class="status" id="status">Checking backend...</div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

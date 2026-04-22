@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audio to Text</title>
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <h1 class="logo">Audio to Text</h1>
+        <span class="subtitle">Audio to Text</span>
+      </div>
+      <div class="header-right">
+        <select id="languageSelect" class="language-select">
+          <option value="en-IN">English (India)</option>
+          <option value="hi-IN">Hindi</option>
+          <option value="ta-IN">Tamil</option>
+          <option value="te-IN">Telugu</option>
+          <option value="kn-IN">Kannada</option>
+          <option value="ml-IN">Malayalam</option>
+          <option value="mr-IN">Marathi</option>
+          <option value="gu-IN">Gujarati</option>
+          <option value="bn-IN">Bengali</option>
+          <option value="pa-IN">Punjabi</option>
+          <option value="od-IN">Odia</option>
+          <option value="as-IN">Assamese</option>
+          <option value="ur-IN">Urdu</option>
+          <option value="ne-IN">Nepali</option>
+          <option value="unknown">Auto-detect</option>
+        </select>
+        <div class="backend-status" id="backendStatus">
+          <span class="status-dot" id="statusDot"></span>
+          <span class="status-text" id="statusText">Checking...</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="main-layout">
+      <!-- Left Panel: Controls & Input -->
+      <div class="left-panel">
+        <!-- Source Header -->
+        <div class="source-tabs">
+          <button class="tab-btn active" data-source="file">Upload File</button>
+        </div>
+
+        <!-- File Upload Controls -->
+        <div class="source-panel" id="filePanel">
+          <div class="upload-zone" id="uploadZone">
+            <div class="upload-icon">&#128193;</div>
+            <p>Drag &amp; drop audio file or click to browse</p>
+            <p class="upload-limits">Max: 500MB | 2 hours | WAV, MP3, AAC, OGG, FLAC, M4A, WebM</p>
+            <input type="file" id="fileInput" hidden
+              accept="audio/*,.wav,.mp3,.aac,.ogg,.opus,.flac,.m4a,.webm,.wma,.amr">
+          </div>
+          <div class="file-info hidden" id="fileInfo">
+            <div class="file-detail">
+              <span id="fileName"></span>
+              <span id="fileSize"></span>
+              <span id="fileDuration"></span>
+            </div>
+            <div class="upload-progress" id="uploadProgress">
+              <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+              </div>
+              <span class="progress-text" id="progressText">0%</span>
+            </div>
+            <button class="ctrl-btn record-btn" id="uploadStartBtn">
+              Start Transcription
+            </button>
+          </div>
+        </div>
+
+        <!-- Job Status -->
+        <div class="job-status" id="jobStatus">
+          <div class="status-badge" id="statusBadge">No active job</div>
+        </div>
+      </div>
+
+      <!-- Right Panel: Transcript -->
+      <div class="right-panel">
+        <div class="transcript-header">
+          <h2>Transcript</h2>
+          <div class="transcript-actions">
+            <button class="action-btn" id="editToggle" disabled>Edit</button>
+            <button class="action-btn" id="saveEdit" disabled hidden>Save</button>
+            <button class="action-btn" id="cancelEdit" hidden>Cancel</button>
+          </div>
+        </div>
+        <div class="transcript-content" id="transcriptContent">
+          <div class="empty-state" id="emptyState">
+            <p>Upload a file to see the transcription here.</p>
+          </div>
+          <div class="live-transcript hidden" id="liveTranscript"></div>
+          <textarea class="edit-area hidden" id="editArea"></textarea>
+        </div>
+
+        <!-- Download Bar -->
+        <div class="download-bar">
+          <span class="download-label">Download:</span>
+          <button class="download-btn" id="downloadTxt" data-format="txt" disabled>TXT</button>
+          <button class="download-btn" id="downloadSrt" data-format="srt" disabled>SRT</button>
+          <button class="download-btn" id="downloadVtt" data-format="vtt" disabled>VTT</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- History Sidebar -->
+    <div class="history-sidebar hidden" id="historySidebar">
+      <div class="sidebar-header">
+        <h2>History</h2>
+        <button class="close-btn" id="closeHistory">&#10005;</button>
+      </div>
+      <div class="history-list" id="historyList">
+        <div class="loading">Loading...</div>
+      </div>
+    </div>
+
+    <!-- History Toggle -->
+    <button class="history-toggle" id="historyToggle">History</button>
+  </div>
+
+  <script src="utils/api.js"></script>
+  <script src="utils/uploader.js"></script>
+  <script src="extension-page.js"></script>
+</body>
+</html>
