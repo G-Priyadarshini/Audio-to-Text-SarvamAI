@@ -51,8 +51,6 @@ const dom = {
   liveTranscript: $('#liveTranscript'),
   editArea: $('#editArea'),
   downloadTxt: $('#downloadTxt'),
-  downloadSrt: $('#downloadSrt'),
-  downloadVtt: $('#downloadVtt'),
 
   // History
   historyToggle: $('#historyToggle'),
@@ -132,8 +130,6 @@ function bindEvents() {
 
   // Downloads
   dom.downloadTxt?.addEventListener('click', () => downloadTranscript('txt'));
-  dom.downloadSrt?.addEventListener('click', () => downloadTranscript('srt'));
-  dom.downloadVtt?.addEventListener('click', () => downloadTranscript('vtt'));
 
   // History
   dom.historyToggle?.addEventListener('click', toggleHistory);
