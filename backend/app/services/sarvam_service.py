@@ -47,6 +47,7 @@ class SarvamClient:
         file_path: Path,
         language_code: str = "en-IN",
         model: str | None = None,
+        retry_count: int = 3,
     ) -> dict:
         """
         POST /speech-to-text  or  /speech-to-text-translate  (multipart form)
@@ -83,30 +84,47 @@ class SarvamClient:
             f"lang={language_code}, endpoint={endpoint})"
         )
 
-        async with httpx.AsyncClient(timeout=300) as client:
-            with open(file_path, "rb") as f:
-                response = await client.post(
-                    endpoint,
-                    headers={"api-subscription-key": self.api_key},
-                    files={"file": (file_path.name, f, content_type)},
-                    data={
-                        "model": model,
-                        "language_code": language_code,
-                    },
-                )
+        # Retry logic with exponential backoff for rate limiting
+        for attempt in range(retry_count):
+            try:
+                async with httpx.AsyncClient(timeout=300) as client:
+                    with open(file_path, "rb") as f:
+                        response = await client.post(
+                            endpoint,
+                            headers={"api-subscription-key": self.api_key},
+                            files={"file": (file_path.name, f, content_type)},
+                            data={
+                                "model": model,
+                                "language_code": language_code,
+                            },
+                        )
 
-            if response.status_code == 429:
-                raise SarvamRateLimitError(429, "Rate limit exceeded")
-            if response.status_code not in (200, 201):
-                raise SarvamAPIError(response.status_code, response.text)
+                    if response.status_code == 429:
+                        if attempt < retry_count - 1:
+                            wait_time = (2 ** attempt) * 3  # 3s, 6s, 12s
+                            logger.warning(
+                                f"Rate limited (attempt {attempt + 1}/{retry_count}). "
+                                f"Retrying in {wait_time}s..."
+                            )
+                            await asyncio.sleep(wait_time)
+                            continue
+                        else:
+                            raise SarvamRateLimitError(429, "Rate limit exceeded (max retries)")
+                    
+                    if response.status_code not in (200, 201):
+                        raise SarvamAPIError(response.status_code, response.text)
 
-            result = response.json()
-            logger.info(
-                f"Direct transcribe OK – "
-                f"{len(result.get('transcript', ''))} chars, "
-                f"lang={result.get('language_code')}"
-            )
-            return result
+                    result = response.json()
+                    logger.info(
+                        f"Direct transcribe OK – "
+                        f"{len(result.get('transcript', ''))} chars, "
+                        f"lang={result.get('language_code')}"
+                    )
+                    return result
+            except (SarvamAPIError, SarvamRateLimitError):
+                if attempt == retry_count - 1:
+                    raise
+                continue
 
     # ──────────────────────────────────────────────
     # Direct API: Transcribe multiple chunks

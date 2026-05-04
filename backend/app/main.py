@@ -114,20 +114,34 @@ def create_app() -> FastAPI:
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-    # CORS — allow extension origin and localhost (include port 8000)
-    # Use a regex to match chrome-extension origins (chrome-extension://<id>)
+    # CORS — allow frontend origins (development and production)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[
             "http://localhost",
             "http://127.0.0.1",
+            "http://localhost:3000",    # EMS Frontend
+            "http://localhost:5000",    # Audio-to-Text Frontend dev
+            "http://localhost:5001",    # Audio-to-Text Frontend (Vite alt port)
+            "http://localhost:5173",    # TestGen Frontend
+            "http://localhost:5174",    # Resume Checker Frontend
+            "http://localhost:5175",    # Audio-to-Text Frontend
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:5000",
+            "http://127.0.0.1:5001",
+            "http://127.0.0.1:5173",
+            "http://127.0.0.1:5174",
+            "http://127.0.0.1:5175",
             "http://localhost:8000",
             "http://127.0.0.1:8000",
+            "https://ems.beqisoft.net",
+            "https://www.ems.beqisoft.net",
         ],
         allow_origin_regex=r"^chrome-extension://.*$",
         allow_credentials=True,
-        allow_methods=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
         allow_headers=["*"],
+        expose_headers=["*"],
     )
 
     # Routes

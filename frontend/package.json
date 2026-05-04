@@ -1,0 +1,30 @@
+{
+  "name": "audio-to-text",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Audio to Text transcription application",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@mui/material": "^5.15.14",
+    "@mui/icons-material": "^5.14.13",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.11.0",
+    "axios": "^1.6.2"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.66",
+    "@types/react-dom": "^18.2.22",
+    "@types/node": "^20.10.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "typescript": "^5.2.2",
+    "vite": "^5.2.0"
+  }
+}
