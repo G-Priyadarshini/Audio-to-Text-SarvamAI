@@ -197,3 +197,21 @@ export async function completeUpload(jobId: string): Promise<{ job_id: string; s
     throw error instanceof Error ? error : new Error('Failed to complete upload')
   }
 }
+
+// ── List Jobs (History) ──
+export async function listJobs(page: number = 1, limit: number = 50): Promise<{ jobs: Array<{ id: string; status: string; language: string; file_size?: number; duration_seconds?: number; created_at: string; error_message?: string }>; total: number; page: number; limit: number; has_next: boolean }> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/jobs?page=${page}&limit=${limit}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to list jobs: ${response.status}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    throw error instanceof Error ? error : new Error('Failed to fetch job history')
+  }
+}

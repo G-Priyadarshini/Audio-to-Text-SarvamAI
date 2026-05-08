@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react'
 import './index.css'
-import { checkHealth, verifyToken, getSettings, updateSettings, createJob, initUpload, uploadChunk, completeUpload, getJobStatus, getTranscript } from './api'
+import { checkHealth, verifyToken, getSettings, updateSettings, createJob, initUpload, uploadChunk, completeUpload, getJobStatus, getTranscript, listJobs } from './api'
 import type { TranscriptionResponse } from './types'
 
 const SUPPORTED_FILE_REGEX = /\.(mp3|mp4)$/i
@@ -16,17 +16,6 @@ function formatBytes(bytes: number) {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`
 }
 
-function getStatusLabel(status: string): string {
-  const labels: { [key: string]: string } = {
-    queued: 'Queued',
-    uploading_to_sarvam: 'Uploading to Sarvam...',
-    sarvam_processing: 'Processing...',
-    downloading_result: 'Retrieving transcript...',
-    completed: 'Completed',
-    failed: 'Failed'
-  }
-  return labels[status] || status
-}
 
 function App() {
   const [authorized, setAuthorized] = useState(false)
@@ -50,6 +39,7 @@ function App() {
   const [settingsStatusType, setSettingsStatusType] = useState<'success' | 'error' | ''>('')
   const [uploadProgress, setUploadProgress] = useState(0)
   const [currentJobId, setCurrentJobId] = useState<string | null>(null)
+  const [jobHistory, setJobHistory] = useState<Array<{ id: string; status: string; language: string; file_size?: number; duration_seconds?: number; created_at: string; error_message?: string }>>([])
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const pollingIntervalRef = useRef<number | null>(null)
 
@@ -338,6 +328,49 @@ function App() {
 
   const toggleHistory = () => {
     setHistoryOpen((open) => !open)
+    if (!historyOpen) {
+      loadJobHistory()
+    }
+  }
+
+  const loadJobHistory = async () => {
+    try {
+      const result = await listJobs(1, 50)
+      setJobHistory(result.jobs)
+    } catch (err) {
+      console.error('Failed to load job history:', err)
+    }
+  }
+
+  const getStatusLabel = (status: string): string => {
+    const labels: { [key: string]: string } = {
+      queued: 'Queued',
+      uploading_to_sarvam: 'Uploading to Sarvam...',
+      sarvam_processing: 'Processing...',
+      downloading_result: 'Retrieving transcript...',
+      completed: 'Completed',
+      failed: 'Failed'
+    }
+    return labels[status] || status
+  }
+
+  const handleHistoryItemClick = async (jobId: string) => {
+    try {
+      const status = await getJobStatus(jobId)
+      if (status.status === 'completed') {
+        const transcript = await getTranscript(jobId)
+        setTranscription({
+          id: jobId,
+          status: 'completed',
+          text: transcript.full_text || '',
+          language: language,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        })
+      }
+    } catch (err) {
+      console.error('Failed to load transcript:', err)
+    }
   }
 
   if (!authorized) {
@@ -498,8 +531,15 @@ function App() {
           </div>
 
           <div className="transcript-content" id="transcriptContent">
-            <div className={`empty-state ${transcription ? 'hidden' : ''}`} id="emptyState">
+            <div className={`empty-state ${transcription || isLoading ? 'hidden' : ''}`} id="emptyState">
               <p>Upload a file to see the transcription here.</p>
+            </div>
+            <div className={`loading-state ${isLoading ? '' : 'hidden'}`} id="loadingState">
+              <p style={{ marginBottom: '10px', fontWeight: 'bold' }}>Uploading to SARVAM AI...</p>
+              <p style={{ fontSize: '14px', color: '#888' }}>{jobStatus}</p>
+              {uploadProgress > 0 && uploadProgress < 100 && (
+                <p style={{ fontSize: '12px', marginTop: '8px' }}>Upload Progress: {uploadProgress}%</p>
+              )}
             </div>
             <div className={`live-transcript ${transcription && !isEditing ? '' : 'hidden'}`} id="liveTranscript">
               {transcription?.text}
@@ -529,7 +569,59 @@ function App() {
           </button>
         </div>
         <div className="history-list" id="historyList">
-          <div className="loading">No history available</div>
+          {jobHistory.length === 0 ? (
+            <div className="loading">No history available</div>
+          ) : (
+            jobHistory.map((job) => (
+              <div
+                key={job.id}
+                className={`history-item status-${job.status}`}
+                style={{ cursor: 'pointer', padding: '10px', marginBottom: '8px', borderRadius: '4px', backgroundColor: '#f5f5f5', border: '1px solid #ddd' }}
+                onClick={() => handleHistoryItemClick(job.id)}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#333' }}>
+                    {new Date(job.created_at).toLocaleTimeString()}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '10px',
+                      padding: '2px 6px',
+                      borderRadius: '3px',
+                      backgroundColor:
+                        job.status === 'completed'
+                          ? '#d4edda'
+                          : job.status === 'failed'
+                            ? '#f8d7da'
+                            : job.status === 'uploading_to_sarvam'
+                              ? '#fff3cd'
+                              : '#e7e7e7',
+                      color:
+                        job.status === 'completed'
+                          ? '#155724'
+                          : job.status === 'failed'
+                            ? '#721c24'
+                            : job.status === 'uploading_to_sarvam'
+                              ? '#856404'
+                              : '#666'
+                    }}
+                  >
+                    {getStatusLabel(job.status)}
+                  </span>
+                </div>
+                <div style={{ fontSize: '12px', color: '#666' }}>
+                  {job.duration_seconds && `${Math.round(job.duration_seconds / 60)} min · `}
+                  {job.file_size && `${(job.file_size / (1024 * 1024)).toFixed(1)} MB`}
+                  {job.language && ` · ${job.language}`}
+                </div>
+                {job.error_message && (
+                  <div style={{ fontSize: '11px', color: '#721c24', marginTop: '4px' }}>
+                    {job.error_message}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
         </div>
       </div>
 

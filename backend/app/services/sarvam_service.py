@@ -85,9 +85,10 @@ class SarvamClient:
         )
 
         # Retry logic with exponential backoff for rate limiting
+        # Use a much longer timeout for audio transcription (up to 15 minutes per chunk)
         for attempt in range(retry_count):
             try:
-                async with httpx.AsyncClient(timeout=300) as client:
+                async with httpx.AsyncClient(timeout=900) as client:
                     with open(file_path, "rb") as f:
                         response = await client.post(
                             endpoint,
